@@ -58,9 +58,9 @@ class OAuth2Helper(object):
         db.init_db(model)
 
         if not self.authorization_endpoint or not self.token_endpoint or not self.client_id or not self.client_secret \
-                or not self.profile_api_url or not self.profile_api_user_field:
+                or not self.profile_api_url
             raise ValueError('authorization_endpoint, token_endpoint, client_id, client_secret, '
-                             'profile_api_url and profile_api_user_field are required')
+                             'profile_api_url are required')
 
     def _redirect_uri(self, request):
         return ''.join([request.host_url, constants.REDIRECT_URL])
