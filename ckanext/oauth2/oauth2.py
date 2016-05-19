@@ -53,12 +53,6 @@ class OAuth2Helper(object):
         self.client_secret = config.get('ckan.oauth2.client_secret', None)
         self.scope = config.get('ckan.oauth2.scope', '').decode()
         self.rememberer_name = config.get('ckan.oauth2.rememberer_name', None)
-        self.profile_api_user_field = config.get('ckan.oauth2.profile_api_user_field', None)
-        self.profile_api_fullname_field = config.get('ckan.oauth2.profile_api_fullname_field', None)
-        self.profile_api_mail_field = config.get('ckan.oauth2.profile_api_mail_field', None)
-        self.profile_api_groupmembership_field = config.get('ckan.oauth2.profile_api_groupmembership_field', None)
-        self.sysadmin_group_name = config.get('ckan.oauth2.sysadmin_group_name', None)
-
 
         # Init db
         db.init_db(model)
@@ -99,8 +93,8 @@ class OAuth2Helper(object):
             else:
                 profile_response.raise_for_status()
         else:
-            user_data = profile_response.json()
-            user_name = user_data[self.profile_api_user_field]
+            user_data = profile_response.json()['principal']
+            user_name = user_data['username']
             user = model.User.by_name(user_name)
 
             if user is None:
@@ -108,19 +102,16 @@ class OAuth2Helper(object):
                 user = model.User(name=user_name)
 
             # Update fullname
-            if self.profile_api_fullname_field and self.profile_api_fullname_field in user_data:
-                user.fullname = user_data[self.profile_api_fullname_field]
+            user.fullname = user_data['name'] + u" " + user_data['surname']
 
             # Update mail
-            if self.profile_api_mail_field and self.profile_api_mail_field in user_data:
-                user.email = user_data[self.profile_api_mail_field]
+            user.email = user_data['email']
 
-             # Update sysadmin status
-            if self.profile_api_groupmembership_field and self.profile_api_groupmembership_field in user_data:
-                if self.sysadmin_group_name and self.sysadmin_group_name in user_data[self.profile_api_groupmembership_field]:
-                    user.sysadmin = True
-                else:
-                    user.sysadmin = False
+            # Update sysadmin status
+            if "ROLE_ADMIN" in user_data['userAuthorities']:
+                user.sysadmin = True
+            else:
+                user.sysadmin = False
 
             # Save the user in the database
             model.Session.add(user)
