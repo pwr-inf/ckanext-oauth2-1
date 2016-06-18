@@ -135,7 +135,7 @@ class OAuth2Plugin(plugins.SingletonPlugin):
         if user_name:
             toolkit.c.user = user_name
             toolkit.c.usertoken = self.oauth2helper.get_stored_token(user_name)
-            toolkit.c.usertoken_refresh = partial(_refresh_and_save_token, user_name)
+            # toolkit.c.usertoken_refresh = partial(_refresh_and_save_token, user_name)
         else:
             log.warn('The user is not currently logged...')
 
