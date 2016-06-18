@@ -36,8 +36,10 @@ class OAuth2Controller(base.BaseController):
         self.oauth2helper = oauth2.OAuth2Helper()
 
     def callback(self):
+        log.debug('calledback')
         try:
             token = self.oauth2helper.get_token()
+            log.debug('token {}'.format(token))
             user_name = self.oauth2helper.identify(token)
             self.oauth2helper.remember(user_name)
             self.oauth2helper.update_token(user_name, token)

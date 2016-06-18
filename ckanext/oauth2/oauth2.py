@@ -16,15 +16,27 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with OAuth2 CKAN Extension.  If not, see <http://www.gnu.org/licenses/>.
-
-
 from __future__ import unicode_literals
+
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    # Legacy Python that doesn't verify HTTPS certificates by default
+    pass
+else:
+    # Handle target environment that doesn't support HTTPS verification
+    ssl._create_default_https_context = _create_unverified_https_context
+
+
 
 import ckan.model as model
 import constants
 import db
 import json
 import logging
+import requests
 
 from base64 import b64encode, b64decode
 from ckan.plugins import toolkit
@@ -74,16 +86,20 @@ class OAuth2Helper(object):
         toolkit.response.location = auth_url
         log.debug('Challenge: Redirecting challenge to page {0}'.format(auth_url))
 
-    def get_token(self):
-        oauth = OAuth2Session(self.client_id, redirect_uri=self._redirect_uri(toolkit.request), scope=self.scope)
-        token = oauth.fetch_token(self.token_endpoint,
-                                  client_secret=self.client_secret,
-                                  authorization_response=toolkit.request.url)
+    def get_token(self): 
+        auth_data = {
+            'grant_type': 'authorization_code',
+            'code': toolkit.request.params['code'],
+            'redirect_uri': self._redirect_uri(toolkit.request)
+        }       
+        
+        r = requests.post(self.token_endpoint, data=auth_data, auth=(self.client_id, self.client_secret), verify=False)
+        token = r.json()
         return token
 
     def identify(self, token):
-        oauth = OAuth2Session(self.client_id, token=token)
-        profile_response = oauth.get(self.profile_api_url)
+        auth = {'Authorization':'Bearer {}'.format(token['access_token'])}
+        profile_response = requests.get(self.profile_api_url, data={'access_token':token['access_token']}, headers=auth, verify=False)
 
         # Token can be invalid
         if not profile_response.ok:
